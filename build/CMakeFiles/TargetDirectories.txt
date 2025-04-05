@@ -1,6 +1,0 @@
-/home/woonjeng/Documents/chatroom_app/build/CMakeFiles/edit_cache.dir
-/home/woonjeng/Documents/chatroom_app/build/CMakeFiles/rebuild_cache.dir
-/home/woonjeng/Documents/chatroom_app/build/src/CMakeFiles/server.dir
-/home/woonjeng/Documents/chatroom_app/build/src/CMakeFiles/client.dir
-/home/woonjeng/Documents/chatroom_app/build/src/CMakeFiles/edit_cache.dir
-/home/woonjeng/Documents/chatroom_app/build/src/CMakeFiles/rebuild_cache.dir
