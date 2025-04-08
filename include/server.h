@@ -51,7 +51,7 @@ public:
             }
 
             receive_message_and_process();
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
 
         shutdown_sockets();
@@ -154,7 +154,6 @@ private:
 
             for (int index: closed_connections)
             {
-                close(client_sockets[index] -> get_fd());
                 client_sockets.erase(client_sockets.begin()+index);
             }
         }
