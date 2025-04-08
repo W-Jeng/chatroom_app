@@ -18,6 +18,11 @@ public:
         }
     }
 
+    int get_fd()
+    {
+        return fd_;
+    }
+
 private:
     int fd_;
 };

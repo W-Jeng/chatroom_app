@@ -18,8 +18,6 @@
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 4096;
 std::mutex client_sockets_mutex;
-std::mutex shutdown_mutex;
-std::atomic<bool> shutdown_requested = false;
 
 class Server {
 public:
@@ -38,46 +36,37 @@ public:
 
         std::cout << "Server socket (int): " << server_fd << "\n";
 
-        std::signal(SIGINT, [](int)
+        if (!set_socket_not_blocking(server_fd))
         {
-            std::cout << "Interrupt called!\n";
-            shutdown_requested = true;
-        });
-
-        int flags = fcntl(server_fd, F_GETFL, 0);
-
-        if (flags == -1)
-        {
-            std::cerr << "Failed to get socket flags!\n";
             return;
         }
 
-        flags |= O_NONBLOCK;
-
-        if (fcntl(server_fd, F_SETFL, flags) == -1)
+        while (!stop_server)
         {
-            std::cerr << "Failed to set socket to non-blocking!\n";
-            return;
-        }
-
-        while (!shutdown_requested)
-        {
-            std::cout << "looping\n";
             int client_fd = accept_connection();
+
+            if (client_fd != -1 && !set_socket_not_blocking(client_fd))
+            {
+                return;
+            }
+
+            receive_message_and_process();
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            /* 
-                TO DO
-                for this task we will use single thread to do it.
-            */
         }
 
         shutdown_sockets();
+    }
+
+    void stop()
+    {
+        stop_server = true;
     }
 
 private:
     int server_fd;
     std::vector<std::unique_ptr<SocketHandle>> client_sockets;   
     int MAX_CLIENTS_;
+    std::atomic<bool> stop_server{false};
 
     void shutdown_sockets()
     {
@@ -123,9 +112,52 @@ private:
         return true;
     }
 
-    void handle_client(int client_fd)
+    void receive_message_and_process()
     {
-        return;
+        std::vector<int> closed_connections;
+
+        for (int i = 0; i < client_sockets.size(); ++i)
+        {
+            char buffer[BUFFER_SIZE];
+            ssize_t bytes = recv(client_sockets[i] -> get_fd(), buffer, sizeof(buffer), 0);
+            
+            if (bytes > 0)
+            {
+                std::cout << "Received buffer item -> bytes: " << bytes << ", message: " << std::string(buffer, bytes) << "\n";
+                memset(buffer, 0, sizeof(buffer));
+            }
+            else if (bytes == 0)
+            {
+                closed_connections.push_back(i);
+            }
+            else
+            {
+                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                {
+                    return;
+                }
+                else if (errno == ECONNRESET)
+                {
+                    closed_connections.push_back(i);
+                }
+                else
+                {
+                    perror("recv");
+                    closed_connections.push_back(i);
+                }
+            }
+        }
+
+        if (closed_connections.size() != 0)
+        {
+            std::reverse(closed_connections.begin(), closed_connections.end());
+
+            for (int index: closed_connections)
+            {
+                close(client_sockets[index] -> get_fd());
+                client_sockets.erase(client_sockets.begin()+index);
+            }
+        }
     }
 
     int accept_connection()
@@ -137,11 +169,31 @@ private:
 
         if (client_fd != -1)
         {
+            client_sockets.push_back(std::make_unique<SocketHandle>(client_fd));
             std::cout << "Client connected at socket (int): " << client_fd << "\n";
         }
 
         return client_fd;
     }
 
+    bool set_socket_not_blocking(int fd)
+    {
+        int flags = fcntl(fd, F_GETFL, 0);
 
+        if (flags == -1)
+        {
+            std::cerr << "Failed to get socket flags!\n";
+            return false;
+        }
+
+        flags |= O_NONBLOCK;
+
+        if (fcntl(fd, F_SETFL, flags) == -1)
+        {
+            std::cerr << "Failed to set socket to non-blocking!\n";
+            return false;
+        }
+
+        return true;
+    }
 };

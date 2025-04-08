@@ -4,6 +4,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <thread>
+#include <chrono>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 4096;
@@ -49,6 +51,7 @@ int main() {
 
     std::cout << "Connected to server!\n";
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     // Step 4: Send data
     const char* message = "Hello, server!";
     send(sock, message, strlen(message), 0);
