@@ -6,17 +6,14 @@
 
 volatile std::sig_atomic_t g_stop = 0;
 
-void handle_signal(int signal)
-{
-    if (signal == SIGINT)
-    {
+void handle_signal(int signal) {
+    if (signal == SIGINT) {
         g_stop = 1;
     }
 }
 
 
-int main()
-{
+int main() {
     std::cout << "Hello from server\n";
     std::signal(SIGINT, handle_signal);
     Server server{5};
@@ -25,14 +22,12 @@ int main()
         server.run();
     });
 
-    while (!g_stop)
-    {
+    while (!g_stop) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     server.stop();
     server_thread.join();
     std::cout << "Clean shutdown\n";
-
     return 0;
 }
