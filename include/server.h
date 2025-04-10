@@ -110,6 +110,7 @@ private:
             
             if (bytes > 0) {
                 std::cout << "Received buffer item -> bytes: " << bytes << ", message: " << std::string(buffer, bytes) << "\n";
+                chatroom.receive(client_sockets[i]->get_fd(), std::string(buffer, bytes));
                 memset(buffer, 0, sizeof(buffer));
             } else if (bytes == 0) {
                 closed_connections.push_back(i);

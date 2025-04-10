@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <unordered_map>
 
 struct Room {
     std::string name;
@@ -14,12 +15,11 @@ public:
         rooms.push_back(Room{"default"});
     }
 
-    void receive(std::string client_msg) {
-        // client_msg must be a complete message
+    void receive(int fd, std::string client_msg) {
+        messages[fd] += client_msg;
     }
 
 private:
     std::vector<Room> rooms;
-
-
+    std::unordered_map<int, std::string> messages;
 };
