@@ -7,18 +7,21 @@
 
 volatile std::sig_atomic_t g_stop = 0;
 
-void handle_signal(int signal) {
-    if (signal == SIGINT) {
+void handle_signal(int signal) 
+{
+    if (signal == SIGINT) 
+    {
         g_stop = 1;
     }
 }
 
 
-int main() {
+int main() 
+{
+    std::unique_ptr<Message> msg = MessageProtocol::decode("17/3/JoinRoom/abc");
 
-    std::unique_ptr<MessageProtocol> msg = MessageProtocol::decode("100/JoinRoom/3/abc");
-
-    if (msg) {
+    if (msg) 
+    {
         std::cout << "msg item: " << msg -> repr() << "\n";
     }
 
@@ -26,11 +29,13 @@ int main() {
     std::signal(SIGINT, handle_signal);
     Server server{5};
 
-    std::thread server_thread([&](){
+    std::thread server_thread([&]()
+    {
         server.run();
     });
 
-    while (!g_stop) {
+    while (!g_stop) 
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 

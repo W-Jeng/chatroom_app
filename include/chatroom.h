@@ -1,25 +1,35 @@
+#pragma once
 #include <string>
 #include <vector>
 #include <iostream>
-#include <unordered_map>
+#include <unordered_set>
+#include <message_protocol.h>
 
-struct Room {
-    std::string name;
-    std::vector<int> users;
-};
-
-class Chatroom {
+class Chatroom 
+{
 public:
-    Chatroom() {
+    Chatroom(std::string room_name):
+        room_name_(room_name)
+    {
         std::cout << "helllo world from chatroom!\n";
-        rooms.push_back(Room{"default"});
     }
 
-    void receive(int fd, std::string client_msg) {
-        messages[fd] += client_msg;
+    void add(int fd) 
+    {
+        users_fd.insert(fd);
+    }
+
+    void erase(int fd)
+    {
+        users_fd.erase(fd);
+    }
+
+    const std::unordered_set<int>& get_users_fd() const
+    {
+        return users_fd;
     }
 
 private:
-    std::vector<Room> rooms;
-    std::unordered_map<int, std::string> messages;
+    const std::string room_name_;
+    std::unordered_set<int> users_fd;
 };

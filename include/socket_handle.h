@@ -1,7 +1,9 @@
+#pragma once
 #include <unistd.h>
 #include <iostream>
 
-class SocketHandle{
+class SocketHandle
+{
 public:
     SocketHandle(int fd):
         fd_(fd) 
