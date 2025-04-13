@@ -17,6 +17,8 @@
 #include <chatroom.h>
 #include <unordered_map>
 #include <message_protocol.h>
+#include <room_manager.h>
+#include <send_buffer.h>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 4096;
@@ -72,6 +74,7 @@ private:
     std::unordered_map<int, std::string> buffer_msg;
     int MAX_CLIENTS_;
     std::atomic<bool> stop_server{false};
+    RoomManager room_manager;
 
     void shutdown_sockets() 
     {
@@ -220,16 +223,26 @@ private:
         switch (msg->action)
         {
             case Action::CreateRoom:
+                room_manager.create_room(msg -> data);
                 break;
 
             case Action::JoinRoom:
+                room_manager.join_room(msg -> from_fd, msg -> data);
                 break;
 
             case Action::LeaveRoom:
+                room_manager.leave_room(msg -> from_fd, msg -> data);
                 break;
 
             case Action::Messaging:
+                std::vector<OutgoingMessage> outgoing_messages = room_manager.on_messaging(msg -> from_fd, msg -> data);
                 break;
         }
+    }
+
+    void echo(const std::vector<OutgoingMessage>& outgoing_messages)
+    {
+        // in not blocking scenes, we need to understand that sometimes client isnt always recv, so we need to store it in a queue 
+        return;
     }
 };

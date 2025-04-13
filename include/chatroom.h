@@ -30,6 +30,6 @@ public:
     }
 
 private:
-    const std::string room_name_;
+    std::string room_name_;
     std::unordered_set<int> users_fd;
 };

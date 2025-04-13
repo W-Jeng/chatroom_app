@@ -52,21 +52,22 @@ Action decode_action(const std::string& action_str)
 struct Message
 {
     int msg_len;
-    int fd_id;
+    int from_fd;
+    int to_fd;
     Action action;
     std::string data;
 
     std::string repr() const 
     {
-        return std::to_string(msg_len) + "/" + std::to_string(fd_id) + "/" +
-            to_string(action) + "/" + data; 
+        return std::to_string(msg_len) + "/" + std::to_string(from_fd) + "/" +
+            std::to_string(to_fd) + "/" + to_string(action) + "/" + data; 
     }
 };
 
 class MessageProtocol 
 {
 /*
-    msg_len/id/action/msg
+    msg_len/from_fd/to_fd/action/msg
 */
 public:
     static std::unique_ptr<Message> decode(const std::string& msg) 
@@ -77,7 +78,8 @@ public:
         }
 
         std::string msg_len_str;
-        std::string fd_id_str;
+        std::string from_fd_str;
+        std::string to_fd_str;
         std::string action_str;
         std::string data_str;
 
@@ -96,21 +98,25 @@ public:
             return nullptr;
         }
 
-        auto end_of_fd_id_delim = std::find(end_of_msg_len_delim+1, msg.end(), '/');
-        auto end_of_action_id_delim = std::find(end_of_fd_id_delim+1, msg.end(), '/');
-        fd_id_str = msg.substr(static_cast<int>(end_of_msg_len_delim-msg.begin())+1, static_cast<int>(end_of_fd_id_delim-end_of_msg_len_delim)-1);
-        action_str = msg.substr(static_cast<int>(end_of_fd_id_delim-msg.begin())+1, static_cast<int>(end_of_action_id_delim-end_of_fd_id_delim)-1); 
+        auto end_of_from_fd_delim = std::find(end_of_msg_len_delim+1, msg.end(), '/');
+        auto end_of_to_fd_delim = std::find(end_of_from_fd_delim+1, msg.end(), '/');
+        auto end_of_action_id_delim = std::find(end_of_to_fd_delim+1, msg.end(), '/');
+        from_fd_str = msg.substr(static_cast<int>(end_of_msg_len_delim-msg.begin())+1, static_cast<int>(end_of_from_fd_delim-end_of_msg_len_delim)-1);
+        to_fd_str = msg.substr(static_cast<int>(end_of_from_fd_delim-msg.begin())+1, static_cast<int>(end_of_to_fd_delim-end_of_from_fd_delim)-1);
+        action_str = msg.substr(static_cast<int>(end_of_to_fd_delim-msg.begin())+1, static_cast<int>(end_of_action_id_delim-end_of_to_fd_delim)-1); 
         data_str = msg.substr(static_cast<int>(end_of_action_id_delim-msg.begin())+1, msg_len-static_cast<int>(end_of_action_id_delim-msg.begin()));
 
         std::cout << "msg len_str: " << msg_len_str << "\n";
-        std::cout << "fd id_str: " << fd_id_str << "\n";
+        std::cout << "from_fd_str: " << from_fd_str << "\n";
+        std::cout << "to_fd str: " << to_fd_str << "\n";
         std::cout << "action_str: " << action_str << "\n";
         std::cout << "data_str: " << data_str << "\n";
 
         // std::cout << "msg str: " << msg_str << "\n";
         auto message = std::make_unique<Message>();
         message -> msg_len = msg_len;
-        message -> fd_id = std::stoi(fd_id_str);
+        message -> from_fd = std::stoi(from_fd_str);
+        message -> to_fd = std::stoi(to_fd_str);
         message -> action = decode_action(action_str);
         message -> data = data_str;
 
