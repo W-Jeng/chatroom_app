@@ -66,7 +66,7 @@ public:
         return true;
     }
 
-    std::vector<OutgoingMessage> on_messaging(int fd, const std::string& data)
+    std::vector<Message> on_messaging(int server_fd, int fd, const std::string& data)
     {
         const std::string& room_name = fd_to_room_mp[fd];
         auto it = chatrooms.find(room_name);
@@ -83,11 +83,17 @@ public:
             return {};
         }
 
-        std::vector<OutgoingMessage> messages;
+        std::vector<Message> messages;
 
         for (int member: room_members)
         {
-            messages.push_back(OutgoingMessage(fd, member, data));
+            Message msg = Message();
+            msg.from_fd = server_fd;
+            msg.to_fd = fd;
+            msg.action = Action::Messaging;
+            msg.data = data;
+            msg.msg_len = msg.size();
+            messages.push_back(msg);
         }
 
         return messages;

@@ -18,7 +18,7 @@ void handle_signal(int signal)
 
 int main() 
 {
-    std::unique_ptr<Message> msg = MessageProtocol::decode("17/3/4/JoinRoom/abc");
+    std::unique_ptr<Message> msg = MessageProtocol::decode("15/3/4/JoinRoom/abc");
 
     if (msg) 
     {

@@ -19,6 +19,7 @@
 #include <message_protocol.h>
 #include <room_manager.h>
 #include <send_buffer.h>
+#include <queue>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 4096;
@@ -235,14 +236,49 @@ private:
                 break;
 
             case Action::Messaging:
-                std::vector<OutgoingMessage> outgoing_messages = room_manager.on_messaging(msg -> from_fd, msg -> data);
+                std::vector<Message> outgoing_messages = room_manager.on_messaging(server_fd, msg -> from_fd, msg -> data);
                 break;
         }
     }
 
-    void echo(const std::vector<OutgoingMessage>& outgoing_messages)
+    void echo(const std::vector<Message>& outgoing_messages)
     {
         // in not blocking scenes, we need to understand that sometimes client isnt always recv, so we need to store it in a queue 
-        return;
+        std::queue<SendBuffer> send_q;
+
+        for (Message msg: outgoing_messages)
+        {
+            send_q.emplace(msg);
+        }
+
+        while (!send_q.empty())
+        {
+            SendBuffer& buf = send_q.front();
+            ssize_t n = send(buf.underlying.to_fd, buf.data.data()+buf.offset, buf.data.size()-buf.offset, 0);
+
+            if (n > 0)
+            {
+                buf.offset += static_cast<size_t>(n);
+
+                if (buf.offset == buf.data.size())
+                {
+                    send_q.pop();
+                }
+                else
+                {
+                    continue;
+                }
+            }   
+            else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+            {
+                continue;
+            }
+            else
+            {
+                perror("send failed");
+                send_q.pop();
+                continue;
+            }
+        }
     }
 };

@@ -62,6 +62,12 @@ struct Message
         return std::to_string(msg_len) + "/" + std::to_string(from_fd) + "/" +
             std::to_string(to_fd) + "/" + to_string(action) + "/" + data; 
     }
+
+    int size() const
+    {
+        return std::to_string(from_fd).size() + std::to_string(from_fd).size() + std::to_string(to_fd).size() +
+            to_string(action).size() + data.size() + 4;
+    }
 };
 
 class MessageProtocol 
@@ -93,7 +99,7 @@ public:
         msg_len_str = msg.substr(0, end_of_msg_len_delim-msg.begin());
         int msg_len = std::stoi(msg_len_str);
 
-        if (msg.size() < msg_len)
+        if ((msg.size() - static_cast<int>(end_of_msg_len_delim-msg.begin())) < msg_len)
         {
             return nullptr;
         }
@@ -104,7 +110,7 @@ public:
         from_fd_str = msg.substr(static_cast<int>(end_of_msg_len_delim-msg.begin())+1, static_cast<int>(end_of_from_fd_delim-end_of_msg_len_delim)-1);
         to_fd_str = msg.substr(static_cast<int>(end_of_from_fd_delim-msg.begin())+1, static_cast<int>(end_of_to_fd_delim-end_of_from_fd_delim)-1);
         action_str = msg.substr(static_cast<int>(end_of_to_fd_delim-msg.begin())+1, static_cast<int>(end_of_action_id_delim-end_of_to_fd_delim)-1); 
-        data_str = msg.substr(static_cast<int>(end_of_action_id_delim-msg.begin())+1, msg_len-static_cast<int>(end_of_action_id_delim-msg.begin()));
+        data_str = msg.substr(static_cast<int>(end_of_action_id_delim-msg.begin())+1, msg_len-static_cast<int>(end_of_action_id_delim-end_of_msg_len_delim)+1);
 
         std::cout << "msg len_str: " << msg_len_str << "\n";
         std::cout << "from_fd_str: " << from_fd_str << "\n";
