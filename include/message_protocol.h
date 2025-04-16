@@ -46,6 +46,7 @@ Action decode_action(const std::string& action_str)
         return Action::Messaging;
     }
 
+    std::cerr << "Unknown Action: " << action_str << "\n";
     throw std::invalid_argument("Unknown action: " + action_str);
 };
 
@@ -110,7 +111,7 @@ public:
         from_fd_str = msg.substr(static_cast<int>(end_of_msg_len_delim-msg.begin())+1, static_cast<int>(end_of_from_fd_delim-end_of_msg_len_delim)-1);
         to_fd_str = msg.substr(static_cast<int>(end_of_from_fd_delim-msg.begin())+1, static_cast<int>(end_of_to_fd_delim-end_of_from_fd_delim)-1);
         action_str = msg.substr(static_cast<int>(end_of_to_fd_delim-msg.begin())+1, static_cast<int>(end_of_action_id_delim-end_of_to_fd_delim)-1); 
-        data_str = msg.substr(static_cast<int>(end_of_action_id_delim-msg.begin())+1, msg_len-static_cast<int>(end_of_action_id_delim-end_of_msg_len_delim)+1);
+        data_str = msg.substr(static_cast<int>(end_of_action_id_delim-msg.begin())+1, msg_len-from_fd_str.size()-to_fd_str.size()-action_str.size()-3);
 
         std::cout << "msg len_str: " << msg_len_str << "\n";
         std::cout << "from_fd_str: " << from_fd_str << "\n";

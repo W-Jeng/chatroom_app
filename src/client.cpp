@@ -53,9 +53,11 @@ int main() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     // Step 4: Send data
-    const char* message = "Hello, server!";
-    send(sock, message, strlen(message), 0);
+    // const char* message = "Hello, server!";
+    // send(sock, message, strlen(message), 0);
 
+    const char* message2 = "19/3/4/Messaging/abcdd";
+    send(sock, message2, strlen(message2), 0);
     // Step 5: Receive the echo response
     char buffer[BUFFER_SIZE] = {0};
 

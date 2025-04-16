@@ -237,6 +237,7 @@ private:
 
             case Action::Messaging:
                 std::vector<Message> outgoing_messages = room_manager.on_messaging(server_fd, msg -> from_fd, msg -> data);
+                echo(outgoing_messages);
                 break;
         }
     }
@@ -254,6 +255,7 @@ private:
         while (!send_q.empty())
         {
             SendBuffer& buf = send_q.front();
+            std::cout << "buffer data: " << buf.data.data() << "\n";
             ssize_t n = send(buf.underlying.to_fd, buf.data.data()+buf.offset, buf.data.size()-buf.offset, 0);
 
             if (n > 0)
