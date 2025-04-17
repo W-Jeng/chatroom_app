@@ -67,7 +67,7 @@ struct Message
     int size() const
     {
         return std::to_string(from_fd).size() + std::to_string(from_fd).size() + std::to_string(to_fd).size() +
-            to_string(action).size() + data.size() + 4;
+            to_string(action).size() + data.size() + 3;
     }
 };
 
