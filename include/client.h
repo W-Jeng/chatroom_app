@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <string>
 #include <message_protocol.h>
+#include <client_state.h>
 
 constexpr int PORT = 8080;
 constexpr int BUFFER_SIZE = 4096;
@@ -18,6 +19,10 @@ public:
 
     void run()
     {
+        ChatSession chat_session(std::make_unique<DisconnectState>());
+        chat_session.prompt();
+
+
         fd_ = socket(AF_INET, SOCK_STREAM, 0);
 
         if (fd_ < 0)
@@ -51,7 +56,7 @@ public:
         msg.from_fd = fd_;
         msg.to_fd = fd_;
         msg.action = Action::Messaging;
-        msg.data = "Connected to server! Client fd: " + std::to_string(fd_) + "\n";
+        msg.data = "Connected to server! Client fd: [" + std::to_string(fd_) + "]\n";
         msg.msg_len = msg.size();
         send(fd_, msg.repr().data(), msg.repr().size(), 0);
     }

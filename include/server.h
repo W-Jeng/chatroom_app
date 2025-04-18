@@ -99,6 +99,14 @@ private:
             return false;
         }
 
+        int opt = 1;
+
+        if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) 
+        {
+            perror("setsockopt(SO_REUSEADDR) failed");
+            exit(EXIT_FAILURE);
+        }
+
         struct sockaddr_in server_address{};
         server_address.sin_family = AF_INET;
         server_address.sin_addr.s_addr = INADDR_ANY;
@@ -126,6 +134,7 @@ private:
 
         for (int i = 0; i < client_sockets.size(); ++i) 
         {
+            std::cout << "trying to recv from client socket fd: " << client_sockets[i] -> get_fd() << "\n";
             char buffer[BUFFER_SIZE];
             ssize_t bytes = recv(client_sockets[i] -> get_fd(), buffer, sizeof(buffer), 0);
             
