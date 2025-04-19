@@ -134,13 +134,11 @@ private:
 
         for (int i = 0; i < client_sockets.size(); ++i) 
         {
-            std::cout << "trying to recv from client socket fd: " << client_sockets[i] -> get_fd() << "\n";
             char buffer[BUFFER_SIZE];
             ssize_t bytes = recv(client_sockets[i] -> get_fd(), buffer, sizeof(buffer), 0);
             
             if (bytes > 0) 
             {
-                std::cout << "Received buffer item -> bytes: " << bytes << ", message: " << std::string(buffer, bytes) << "\n";
                 buffer_msg[client_sockets[i]->get_fd()] = std::string(buffer, bytes);
                 on_message_update(client_sockets[i]->get_fd());
                 memset(buffer, 0, sizeof(buffer));
@@ -190,6 +188,14 @@ private:
         {
             client_sockets.push_back(std::make_unique<SocketHandle>(client_fd));
             std::cout << "Client connected at socket (int): " << client_fd << "\n";
+            Message return_msg;
+            return_msg.from_fd = server_fd;
+            return_msg.to_fd = client_fd;
+            return_msg.action = Action::Messaging;
+            return_msg.data = "Room does not exist or you haven't joined the room!";
+            return_msg.msg_len = return_msg.size();
+            std::cout << return_msg.repr() << std::endl;
+            send(client_fd, return_msg.repr().c_str(), return_msg.repr().size(), 0);
         }
 
         return client_fd;
@@ -224,12 +230,14 @@ private:
         {
             int msg_len = msg -> msg_len;
             buffer_msg[fd] = buffer_msg[fd].substr(msg_len, buffer_msg[fd].size()-msg_len);
-            process_full_message(std::move(msg));
+            process_full_message(fd, std::move(msg));
         }
     }
 
-    void process_full_message(std::unique_ptr<Message> msg)
+    void process_full_message(int sent_from, std::unique_ptr<Message> msg)
     {
+        bool success;
+
         switch (msg->action)
         {
             case Action::CreateRoom:
@@ -237,7 +245,36 @@ private:
                 break;
 
             case Action::JoinRoom:
-                room_manager.join_room(msg -> from_fd, msg -> data);
+                std::cout << "action join room!\n";
+                success = room_manager.join_room(msg -> from_fd, msg -> data);
+
+                if (success)
+                {
+                    std::cout << "User successfully joined the room\n";
+                    Message return_msg;
+                    return_msg.from_fd = server_fd;
+                    return_msg.to_fd = sent_from;
+                    return_msg.action = Action::Messaging;
+                    return_msg.data = "User succesfully joined the room\n";
+                    return_msg.msg_len = return_msg.size();
+                    send(sent_from, return_msg.repr().data(), return_msg.repr().size(), 0);
+                }
+                else
+                {
+                    std::cout << "Room does not exist or you haven't joined the room!\n";
+                    std::cout << "fromo fd: " << msg -> from_fd << ", msg to fd: " << msg -> to_fd << std::endl;
+                    Message return_msg;
+                    return_msg.from_fd = server_fd;
+                    return_msg.to_fd = sent_from;
+                    return_msg.action = Action::Messaging;
+                    return_msg.data = "Room does not exist or you haven't joined the room!";
+                    return_msg.msg_len = return_msg.size();
+                    std::cout << return_msg.repr() << std::endl;
+                    std::cout << "before send!\n";
+                    send(sent_from, return_msg.repr().c_str(), return_msg.repr().size(), 0);
+                    std::cout << "send msg!\n";
+                }
+                
                 break;
 
             case Action::LeaveRoom:
