@@ -35,11 +35,6 @@ public:
 
         const std::unordered_set<int>& room_members = it->second.get_users_fd();
 
-        if (!room_members.contains(fd_user)) 
-        {
-            return false;
-        }
-
         it->second.add(fd_user);
         fd_to_room_mp[fd_user] = room_name;
         return true;

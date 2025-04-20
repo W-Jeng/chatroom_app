@@ -112,7 +112,7 @@ private:
             }
 
             std::string msg_received(buffer, bytes_received);
-            std::cout << "Msg received from server: [" << msg_received << "]\n";
+            std::cout << "\n\nMsg received from server: [" << msg_received << "]\n";
 
             if (chat_sesion.valid_state())
             {

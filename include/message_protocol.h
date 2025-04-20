@@ -113,12 +113,6 @@ public:
         action_str = msg.substr(static_cast<int>(end_of_to_fd_delim-msg.begin())+1, static_cast<int>(end_of_action_id_delim-end_of_to_fd_delim)-1); 
         data_str = msg.substr(static_cast<int>(end_of_action_id_delim-msg.begin())+1, msg_len-from_fd_str.size()-to_fd_str.size()-action_str.size()-3);
 
-        std::cout << "msg len_str: " << msg_len_str << "\n";
-        std::cout << "from_fd_str: " << from_fd_str << "\n";
-        std::cout << "to_fd str: " << to_fd_str << "\n";
-        std::cout << "action_str: " << action_str << "\n";
-        std::cout << "data_str: " << data_str << "\n";
-
         // std::cout << "msg str: " << msg_str << "\n";
         auto message = std::make_unique<Message>();
         message -> msg_len = msg_len;

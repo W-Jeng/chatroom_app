@@ -192,7 +192,7 @@ private:
             return_msg.from_fd = server_fd;
             return_msg.to_fd = client_fd;
             return_msg.action = Action::Messaging;
-            return_msg.data = "Server has received the connection!\n";
+            return_msg.data = "Server has received the connection!";
             return_msg.msg_len = return_msg.size();
             std::cout << return_msg.repr() << std::endl;
             send(client_fd, return_msg.repr().c_str(), return_msg.repr().size(), 0);
@@ -245,8 +245,7 @@ private:
                 break;
 
             case Action::JoinRoom:
-                std::cout << "action join room!\n";
-                success = room_manager.join_room(msg -> from_fd, msg -> data);
+                success = room_manager.join_room(sent_from, msg -> data);
 
                 if (success)
                 {
@@ -254,9 +253,10 @@ private:
                     Message return_msg;
                     return_msg.from_fd = server_fd;
                     return_msg.to_fd = sent_from;
-                    return_msg.action = Action::Messaging;
-                    return_msg.data = "User succesfully joined the room\n";
+                    return_msg.action = Action::JoinRoom;
+                    return_msg.data = "SUCCESS";
                     return_msg.msg_len = return_msg.size();
+                    std::cout << return_msg.repr() << std::endl;
                     send(sent_from, return_msg.repr().data(), return_msg.repr().size(), 0);
                 }
                 else

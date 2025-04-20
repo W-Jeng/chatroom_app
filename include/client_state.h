@@ -94,7 +94,7 @@ public:
 
         if (msg)
         {
-            std::cout << "the message repr: " << msg -> repr() << "\n";
+            std::cout << "Message received from server: " << msg -> repr() << "\n";
             state -> receive_from_server(*this, *msg);
         }
     }
@@ -126,6 +126,12 @@ public:
     void prompt(ChatSession& session) override;
 };
 
+class CreateRoomState: public SessionState
+{
+public:
+    void prompt(ChatSession& session) override;
+};
+
 void JoinRoomState::prompt(ChatSession& session)
 {
     std::string response;
@@ -142,7 +148,6 @@ void JoinRoomState::prompt(ChatSession& session)
     } 
 
     session.join_room(response);
-    session.prompt();
 };
 
 void JoinRoomState::join_room(ChatSession& session, const std::string& room_name)
@@ -160,7 +165,7 @@ void JoinRoomState::join_room(ChatSession& session, const std::string& room_name
 
 void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
 {
-    if (msg.action == Action::JoinRoom && msg.data == "APPROVE")
+    if (msg.action == Action::JoinRoom && msg.data == "SUCCESS")
     {
         session.set_state(std::make_unique<OccupiedState>());
     }
@@ -188,8 +193,7 @@ void DisconnectState::prompt(ChatSession& session)
     else if (response == "2")
     {
         // TODO
-        // session.set_state
-        return;
+        session.set_state(std::make_unique<CreateRoomState>());
     }
     else if (response == "-1")
     {
@@ -205,5 +209,52 @@ void DisconnectState::prompt(ChatSession& session)
 
 void OccupiedState::prompt(ChatSession& session)
 {
-    return;
+    std::string response;
+
+    std::cout << "\n\nActive State: Occupied State\n";
+    std::cout << "[Key -1] To leave room\n";
+    std::cout << "Enter the message: ";
+    std::getline(std::cin, response);
+
+    if (response == "-1")
+    {
+        session.set_state(std::make_unique<DisconnectState>());
+        return;
+    }
+
+    Message msg;
+    msg.from_fd = session.get_client_fd();
+    msg.to_fd = session.get_client_fd();
+    msg.action = Action::Messaging;
+    msg.data = response;
+    msg.msg_len = msg.size();
+    send(session.get_client_fd(), msg.repr().c_str(), msg.repr().size(), 0);
+
+    session.prompt();
+}
+
+void CreateRoomState::prompt(ChatSession& session)
+{
+    std::string response;
+
+    std::cout << "\nActive State: Create Room State\n";
+    std::cout << "[Key -1] To go back to disconnect state\n";
+    std::cout << "Create a room with name: ";
+    std::getline(std::cin, response);
+
+    if (response == "-1")
+    {
+        session.set_state(std::make_unique<DisconnectState>());
+        return;
+    }
+
+    Message msg;
+    msg.from_fd = session.get_client_fd();
+    msg.to_fd = session.get_client_fd();
+    msg.action = Action::CreateRoom;
+    msg.data = response;
+    msg.msg_len = msg.size();
+    send(session.get_client_fd(), msg.repr().c_str(), msg.repr().size(), 0);
+    std::cout << "Message sent: " << msg.repr() << "\n";
+    session.set_state(std::make_unique<DisconnectState>());
 }

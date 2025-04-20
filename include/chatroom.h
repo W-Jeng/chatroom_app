@@ -11,7 +11,7 @@ public:
     Chatroom(std::string room_name):
         room_name_(room_name)
     {
-        std::cout << "helllo world from chatroom!\n";
+        std::cout << "Chatroom initialized with name: " << room_name_ << "\n";
     }
 
     void add(int fd) 
