@@ -16,7 +16,8 @@ constexpr int BUFFER_SIZE = 4096;
 class Client
 {
 public:
-    Client() {}
+    Client():
+        chat_sesion(app_stopped) {}
 
     void run()
     {
@@ -74,8 +75,9 @@ public:
             listen_from_server();
         });
 
-        ChatSession chat_session(std::make_unique<DisconnectState>(), fd_, app_stopped);
-        chat_session.prompt();
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        chat_sesion.set_fd(fd_);
+        chat_sesion.set_state(std::make_unique<DisconnectState>());
         listen_thread.join();
     }
 
@@ -93,6 +95,7 @@ public:
 private:
     int fd_ = -1;
     bool app_stopped = false;
+    ChatSession chat_sesion;
 
     void listen_from_server()
     {
@@ -102,13 +105,19 @@ private:
         {
             ssize_t bytes_received = read(fd_, buffer, BUFFER_SIZE);
 
-            if (bytes_received > 0)
+            if (bytes_received <= 0)
             {
-                std::string msg_received(buffer, bytes_received);
-                std::cout << "I have received msg from server: " << msg_received << "\n";
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::string msg_received(buffer, bytes_received);
+            std::cout << "Msg received from server: [" << msg_received << "]\n";
+
+            if (chat_sesion.valid_state())
+            {
+                chat_sesion.receive_from_server(msg_received);
+            }
         }
     }
 

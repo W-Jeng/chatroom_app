@@ -192,7 +192,7 @@ private:
             return_msg.from_fd = server_fd;
             return_msg.to_fd = client_fd;
             return_msg.action = Action::Messaging;
-            return_msg.data = "Room does not exist or you haven't joined the room!";
+            return_msg.data = "Server has received the connection!\n";
             return_msg.msg_len = return_msg.size();
             std::cout << return_msg.repr() << std::endl;
             send(client_fd, return_msg.repr().c_str(), return_msg.repr().size(), 0);
@@ -262,7 +262,6 @@ private:
                 else
                 {
                     std::cout << "Room does not exist or you haven't joined the room!\n";
-                    std::cout << "fromo fd: " << msg -> from_fd << ", msg to fd: " << msg -> to_fd << std::endl;
                     Message return_msg;
                     return_msg.from_fd = server_fd;
                     return_msg.to_fd = sent_from;
@@ -270,9 +269,7 @@ private:
                     return_msg.data = "Room does not exist or you haven't joined the room!";
                     return_msg.msg_len = return_msg.size();
                     std::cout << return_msg.repr() << std::endl;
-                    std::cout << "before send!\n";
                     send(sent_from, return_msg.repr().c_str(), return_msg.repr().size(), 0);
-                    std::cout << "send msg!\n";
                 }
                 
                 break;

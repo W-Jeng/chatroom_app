@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <message_protocol.h>
 
 class ChatSession;
 
@@ -15,34 +16,46 @@ public:
 
     virtual void connect(ChatSession& session)
     {
-        std::cout << "invalid action for current state \n";
+        std::cout << "Invalid action [connect] for current state \n";
     }
 
     virtual void join_room(ChatSession& session, const std::string& room_name)
     {
-        std::cout << "Invalid action for current state \n";
+        std::cout << "Invalid action [join_room] for current state \n";
     }
 
     virtual void send_message(ChatSession& session, const std::string& msg)
     {
-        std::cout << "Invalid action for current state \n";
+        std::cout << "Invalid action [send_message] for current state \n";
+    }
+
+    virtual void receive_from_server(ChatSession& session, Message& msg)
+    {
+        std::cout << "Invalid action [receive_from_server] for current state \n";
     }
 };
 
 class ChatSession
 {
 public:
-    ChatSession(std::unique_ptr<SessionState> initial_state,
-        int client_fd_,
-        bool& app_stoppped_):
-        state(std::move(initial_state)),
-        client_fd(client_fd_),
-        app_stopped(app_stoppped_) {};
+    ChatSession(bool& app_stoppped_):
+        app_stopped(app_stoppped_),
+        state(nullptr) {};
+
+    bool valid_state()
+    {
+        return (state != nullptr);
+    }
 
     void set_state(std::unique_ptr<SessionState> new_state)
     {
         state = std::move(new_state);
         prompt();
+    }
+
+    void set_fd(int fd)
+    {
+        client_fd = fd;
     }
 
     void prompt()
@@ -75,6 +88,17 @@ public:
         return client_fd;
     }
 
+    void receive_from_server(const std::string& message)
+    {
+        std::unique_ptr<Message> msg = MessageProtocol::decode(message);
+
+        if (msg)
+        {
+            std::cout << "the message repr: " << msg -> repr() << "\n";
+            state -> receive_from_server(*this, *msg);
+        }
+    }
+
 private:
     std::unique_ptr<SessionState> state;
     int client_fd;
@@ -86,10 +110,18 @@ class JoinRoomState: public SessionState
 public: 
     void prompt(ChatSession& session) override;
     void join_room(ChatSession& session, const std::string& room_name) override;
+    void receive_from_server(ChatSession& session, Message& msg) override;
 };
 
 class DisconnectState: public SessionState 
 {
+public:
+    void prompt(ChatSession& session) override;
+};
+
+class OccupiedState: public SessionState
+{
+// Joined a room state
 public:
     void prompt(ChatSession& session) override;
 };
@@ -126,13 +158,26 @@ void JoinRoomState::join_room(ChatSession& session, const std::string& room_name
     send(client_fd, msg.repr().data(), msg.repr().size(), 0);
 }
 
+void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
+{
+    if (msg.action == Action::JoinRoom && msg.data == "APPROVE")
+    {
+        session.set_state(std::make_unique<OccupiedState>());
+    }
+    else
+    {
+        std::cout << "Unknown resolve by server: " << msg.repr() << "\n";
+    }
+}
+
 void DisconnectState::prompt(ChatSession& session)
 {
     std::string response;
 
     std::cout << "\nActive State: Disconnected State\n";
     std::cout << "[Key 1] Join Room\n";
-    std::cout << "[Key 2] End Application\n";
+    std::cout << "[Key 2] Create Room\n";
+    std::cout << "[Key -1] End Application\n";
     std::cout << "Answer: ";
     std::getline(std::cin, response);
 
@@ -141,6 +186,12 @@ void DisconnectState::prompt(ChatSession& session)
         session.set_state(std::make_unique<JoinRoomState>());
     }
     else if (response == "2")
+    {
+        // TODO
+        // session.set_state
+        return;
+    }
+    else if (response == "-1")
     {
         std::cout << "Application ended. Press CTRL+C to exit to prompt\n";
         return;
@@ -152,3 +203,7 @@ void DisconnectState::prompt(ChatSession& session)
     }
 };
 
+void OccupiedState::prompt(ChatSession& session)
+{
+    return;
+}
