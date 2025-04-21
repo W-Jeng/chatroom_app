@@ -228,6 +228,7 @@ private:
 
         if (msg)
         {
+            std::cout << "on msg update: " << msg -> repr() << "\n";
             int msg_len = msg -> msg_len;
             buffer_msg[fd] = buffer_msg[fd].substr(msg_len, buffer_msg[fd].size()-msg_len);
             process_full_message(fd, std::move(msg));
@@ -279,7 +280,9 @@ private:
                 break;
 
             case Action::Messaging:
-                std::vector<Message> outgoing_messages = room_manager.on_messaging(server_fd, msg -> from_fd, msg -> data);
+                std::cout << "messaging action called\n";
+                std::vector<Message> outgoing_messages = room_manager.on_messaging(server_fd, sent_from, msg -> data);
+                std::cout << "outgoing msg size: " << outgoing_messages.size() << "\n";
                 echo(outgoing_messages);
                 break;
         }
@@ -300,6 +303,7 @@ private:
             SendBuffer& buf = send_q.front();
             std::cout << "buffer data: " << buf.data.data() << "\n";
             ssize_t n = send(buf.underlying.to_fd, buf.data.data()+buf.offset, buf.data.size()-buf.offset, 0);
+            std::cout << "sent n: " << n << "\n";
 
             if (n > 0)
             {

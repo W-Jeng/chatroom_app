@@ -4,6 +4,9 @@
 #include <memory>
 #include <sstream>
 #include <message_protocol.h>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
 
 class ChatSession;
 
@@ -38,6 +41,9 @@ public:
 class ChatSession
 {
 public:
+    std::queue<std::string> message_queue;
+    std::condition_variable cond_var;
+
     ChatSession(bool& app_stoppped_):
         app_stopped(app_stoppped_),
         state(nullptr) {};
@@ -88,9 +94,11 @@ public:
         return client_fd;
     }
 
-    void receive_from_server(const std::string& message)
+    void receive_from_server()
     {
-        std::unique_ptr<Message> msg = MessageProtocol::decode(message);
+        std::string message_str = message_queue.front();
+        message_queue.pop();
+        std::unique_ptr<Message> msg = MessageProtocol::decode(message_str);
 
         if (msg)
         {
@@ -103,6 +111,7 @@ private:
     std::unique_ptr<SessionState> state;
     int client_fd;
     bool& app_stopped;
+    std::mutex mut;
 };
 
 class JoinRoomState: public SessionState
@@ -124,6 +133,7 @@ class OccupiedState: public SessionState
 // Joined a room state
 public:
     void prompt(ChatSession& session) override;
+    void receive_from_server(ChatSession& session, Message& msg) override;
 };
 
 class CreateRoomState: public SessionState
@@ -148,6 +158,9 @@ void JoinRoomState::prompt(ChatSession& session)
     } 
 
     session.join_room(response);
+    std::unique_lock<std::mutex> unique_lck;
+    session.cond_var.wait(unique_lck, [&]{return !session.message_queue.empty();});
+    session.receive_from_server();
 };
 
 void JoinRoomState::join_room(ChatSession& session, const std::string& room_name)
@@ -231,6 +244,11 @@ void OccupiedState::prompt(ChatSession& session)
     send(session.get_client_fd(), msg.repr().c_str(), msg.repr().size(), 0);
 
     session.prompt();
+}
+
+void OccupiedState::receive_from_server(ChatSession& session, Message& msg)
+{
+    std::cout << "Received a message from server: " << msg.data << std::endl;
 }
 
 void CreateRoomState::prompt(ChatSession& session)

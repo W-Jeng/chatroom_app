@@ -17,7 +17,7 @@ class Client
 {
 public:
     Client():
-        chat_sesion(app_stopped) {}
+        chat_session(app_stopped) {}
 
     void run()
     {
@@ -76,8 +76,8 @@ public:
         });
 
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        chat_sesion.set_fd(fd_);
-        chat_sesion.set_state(std::make_unique<DisconnectState>());
+        chat_session.set_fd(fd_);
+        chat_session.set_state(std::make_unique<DisconnectState>());
         listen_thread.join();
     }
 
@@ -95,7 +95,7 @@ public:
 private:
     int fd_ = -1;
     bool app_stopped = false;
-    ChatSession chat_sesion;
+    ChatSession chat_session;
 
     void listen_from_server()
     {
@@ -114,9 +114,12 @@ private:
             std::string msg_received(buffer, bytes_received);
             std::cout << "\n\nMsg received from server: [" << msg_received << "]\n";
 
-            if (chat_sesion.valid_state())
+            if (chat_session.valid_state())
             {
-                chat_sesion.receive_from_server(msg_received);
+                int i = 1;
+                chat_session.message_queue.push(msg_received);
+                chat_session.cond_var.notify_one();
+                // chat_session.receive_from_server(msg_received);
             }
         }
     }
