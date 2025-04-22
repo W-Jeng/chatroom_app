@@ -258,7 +258,7 @@ private:
                     return_msg.data = "SUCCESS";
                     return_msg.msg_len = return_msg.size();
                     std::cout << return_msg.repr() << std::endl;
-                    send(sent_from, return_msg.repr().data(), return_msg.repr().size(), 0);
+                    send(sent_from, return_msg.repr().c_str(), return_msg.repr().size(), 0);
                 }
                 else
                 {

@@ -7,6 +7,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <thread>
 
 class ChatSession;
 
@@ -43,10 +44,11 @@ class ChatSession
 public:
     std::queue<std::string> message_queue;
     std::condition_variable cond_var;
+    std::mutex mut;
 
     ChatSession(bool& app_stoppped_):
-        app_stopped(app_stoppped_),
-        state(nullptr) {};
+        app_stopped(app_stoppped_)
+        {};
 
     bool valid_state()
     {
@@ -96,6 +98,7 @@ public:
 
     void receive_from_server()
     {
+        std::cout << "chat session received from server with thread id: " << std::this_thread::get_id() << "\n";
         std::string message_str = message_queue.front();
         message_queue.pop();
         std::unique_ptr<Message> msg = MessageProtocol::decode(message_str);
@@ -108,10 +111,9 @@ public:
     }
 
 private:
-    std::unique_ptr<SessionState> state;
+    std::unique_ptr<SessionState> state{nullptr};
     int client_fd;
     bool& app_stopped;
-    std::mutex mut;
 };
 
 class JoinRoomState: public SessionState
@@ -157,10 +159,17 @@ void JoinRoomState::prompt(ChatSession& session)
         session.set_state(std::make_unique<DisconnectState>());
     } 
 
+    while (!session.message_queue.empty())
+    {
+        session.message_queue.pop();
+    }
+
     session.join_room(response);
-    std::unique_lock<std::mutex> unique_lck;
+    std::unique_lock<std::mutex> unique_lck(session.mut);
+    std::cout << "locked this thread!: " << std::this_thread::get_id() << "\n";
     session.cond_var.wait(unique_lck, [&]{return !session.message_queue.empty();});
-    session.receive_from_server();
+    std::cout << "thread is awaken! " << std::this_thread::get_id() << "\n";
+    // session.receive_from_server();
 };
 
 void JoinRoomState::join_room(ChatSession& session, const std::string& room_name)
@@ -178,6 +187,8 @@ void JoinRoomState::join_room(ChatSession& session, const std::string& room_name
 
 void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
 {
+    std::cout << "thread id: " << std::this_thread::get_id() << "\n";
+
     if (msg.action == Action::JoinRoom && msg.data == "SUCCESS")
     {
         session.set_state(std::make_unique<OccupiedState>());

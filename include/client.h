@@ -100,6 +100,7 @@ private:
     void listen_from_server()
     {
         char buffer[BUFFER_SIZE] = {0};
+        std::cout << "listening from thread: " << std::this_thread::get_id() << "\n";
 
         while (!app_stopped)
         {
@@ -107,18 +108,21 @@ private:
 
             if (bytes_received <= 0)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 continue;
             }
 
+            std::cout << "here!\n";
             std::string msg_received(buffer, bytes_received);
+            memset(buffer, 0, sizeof(buffer));
             std::cout << "\n\nMsg received from server: [" << msg_received << "]\n";
 
             if (chat_session.valid_state())
             {
-                int i = 1;
+                std::cout << "chat session add message\n";
                 chat_session.message_queue.push(msg_received);
                 chat_session.cond_var.notify_one();
+                // chat_session.receive_from_server();
                 // chat_session.receive_from_server(msg_received);
             }
         }
