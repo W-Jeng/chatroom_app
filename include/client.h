@@ -117,14 +117,19 @@ private:
             memset(buffer, 0, sizeof(buffer));
             std::cout << "\n\nMsg received from server: [" << msg_received << "]\n";
 
-            if (chat_session.valid_state())
+            if (!chat_session.valid_state())
             {
-                std::cout << "chat session add message\n";
-                chat_session.message_queue.push(msg_received);
-                chat_session.cond_var.notify_one();
-                // chat_session.receive_from_server();
-                // chat_session.receive_from_server(msg_received);
+                continue;
             }
+            std::cout << "chat session add message\n";
+            {
+                std::lock_guard<std::mutex> lock(chat_session.mut);
+                chat_session.message_queue.push(msg_received);
+            }
+
+            chat_session.cond_var.notify_one();
+            // chat_session.receive_from_server();
+            // chat_session.receive_from_server(msg_received);
         }
     }
 
