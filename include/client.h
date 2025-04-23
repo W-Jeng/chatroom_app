@@ -108,11 +108,18 @@ private:
 
             if (bytes_received <= 0)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                continue;
+                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    continue;
+                }
+                else
+                {
+                    perror("read error");
+                    break;
+                }
             }
 
-            std::cout << "here!\n";
             std::string msg_received(buffer, bytes_received);
             memset(buffer, 0, sizeof(buffer));
             std::cout << "\n\nMsg received from server: [" << msg_received << "]\n";
@@ -121,15 +128,9 @@ private:
             {
                 continue;
             }
-            std::cout << "chat session add message\n";
-            {
-                std::lock_guard<std::mutex> lock(chat_session.mut);
-                chat_session.message_queue.push(msg_received);
-            }
 
+            chat_session.message_queue.push(msg_received);
             chat_session.cond_var.notify_one();
-            // chat_session.receive_from_server();
-            // chat_session.receive_from_server(msg_received);
         }
     }
 

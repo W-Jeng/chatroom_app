@@ -48,7 +48,7 @@ public:
 
     ChatSession(bool& app_stoppped_):
         app_stopped(app_stoppped_)
-        {};
+    {};
 
     bool valid_state()
     {
@@ -98,6 +98,11 @@ public:
 
     void receive_from_server()
     {
+        std::cout << "calling receive from server!\n";
+        if (message_queue.empty())
+        {
+            return;
+        }
         std::cout << "chat session received from server with thread id: " << std::this_thread::get_id() << "\n";
         std::string message_str = message_queue.front();
         message_queue.pop();
@@ -165,10 +170,11 @@ void JoinRoomState::prompt(ChatSession& session)
     }
 
     session.join_room(response);
-    std::unique_lock<std::mutex> unique_lck(session.mut);
+    std::unique_lock<std::mutex> lck(session.mut);
     std::cout << "locked this thread!: " << std::this_thread::get_id() << "\n";
-    session.cond_var.wait(unique_lck, [&]{return !session.message_queue.empty();});
+    session.cond_var.wait(lck, [&]{return !session.message_queue.empty();});
     std::cout << "thread is awaken! " << std::this_thread::get_id() << "\n";
+    session.set_state(std::make_unique<OccupiedState>());
     // session.receive_from_server();
 };
 
@@ -182,7 +188,7 @@ void JoinRoomState::join_room(ChatSession& session, const std::string& room_name
     msg.data = room_name;
     msg.msg_len = msg.size();
 
-    send(client_fd, msg.repr().data(), msg.repr().size(), 0);
+    send(client_fd, msg.repr().c_str(), msg.repr().size(), 0);
 }
 
 void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
@@ -252,8 +258,9 @@ void OccupiedState::prompt(ChatSession& session)
     msg.action = Action::Messaging;
     msg.data = response;
     msg.msg_len = msg.size();
+    std::cout << "prompt message about to send: " << msg.repr() << "\n";
     send(session.get_client_fd(), msg.repr().c_str(), msg.repr().size(), 0);
-
+    session.receive_from_server();
     session.prompt();
 }
 
