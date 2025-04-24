@@ -98,12 +98,11 @@ public:
 
     void receive_from_server()
     {
-        std::cout << "calling receive from server!\n";
         if (message_queue.empty())
         {
             return;
         }
-        std::cout << "chat session received from server with thread id: " << std::this_thread::get_id() << "\n";
+
         std::string message_str = message_queue.front();
         message_queue.pop();
         std::unique_ptr<Message> msg = MessageProtocol::decode(message_str);
@@ -171,11 +170,8 @@ void JoinRoomState::prompt(ChatSession& session)
 
     session.join_room(response);
     std::unique_lock<std::mutex> lck(session.mut);
-    std::cout << "locked this thread!: " << std::this_thread::get_id() << "\n";
     session.cond_var.wait(lck, [&]{return !session.message_queue.empty();});
-    std::cout << "thread is awaken! " << std::this_thread::get_id() << "\n";
     session.set_state(std::make_unique<OccupiedState>());
-    // session.receive_from_server();
 };
 
 void JoinRoomState::join_room(ChatSession& session, const std::string& room_name)
@@ -258,7 +254,6 @@ void OccupiedState::prompt(ChatSession& session)
     msg.action = Action::Messaging;
     msg.data = response;
     msg.msg_len = msg.size();
-    std::cout << "prompt message about to send: " << msg.repr() << "\n";
     send(session.get_client_fd(), msg.repr().c_str(), msg.repr().size(), 0);
     session.receive_from_server();
     session.prompt();
@@ -266,7 +261,7 @@ void OccupiedState::prompt(ChatSession& session)
 
 void OccupiedState::receive_from_server(ChatSession& session, Message& msg)
 {
-    std::cout << "Received a message from server: " << msg.data << std::endl;
+    std::cout << "\n\nReceived a message from server: " << msg.data << std::endl;
 }
 
 void CreateRoomState::prompt(ChatSession& session)

@@ -100,7 +100,7 @@ private:
     void listen_from_server()
     {
         char buffer[BUFFER_SIZE] = {0};
-        std::cout << "listening from thread: " << std::this_thread::get_id() << "\n";
+        std::cout << "Listening from server on thread: " << std::this_thread::get_id() << "\n";
 
         while (!app_stopped)
         {
@@ -110,7 +110,7 @@ private:
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     continue;
                 }
                 else
@@ -122,7 +122,7 @@ private:
 
             std::string msg_received(buffer, bytes_received);
             memset(buffer, 0, sizeof(buffer));
-            std::cout << "\n\nMsg received from server: [" << msg_received << "]\n";
+            std::cout << "\n\nRaw data from server: [" << msg_received << "]\n";
 
             if (!chat_session.valid_state())
             {

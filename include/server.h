@@ -58,7 +58,7 @@ public:
             }
 
             receive_message_and_process();
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         shutdown_sockets();
@@ -73,6 +73,7 @@ private:
     int server_fd;
     std::vector<std::unique_ptr<SocketHandle>> client_sockets;   
     std::unordered_map<int, std::string> buffer_msg;
+    std::mutex mut;
     int MAX_CLIENTS_;
     std::atomic<bool> stop_server{false};
     RoomManager room_manager;
@@ -131,12 +132,13 @@ private:
     void receive_message_and_process() 
     {
         std::vector<int> closed_connections;
+        std::lock_guard<std::mutex> lck(mut);
 
         for (int i = 0; i < client_sockets.size(); ++i) 
         {
             char buffer[BUFFER_SIZE];
             ssize_t bytes = recv(client_sockets[i] -> get_fd(), buffer, sizeof(buffer), 0);
-            
+
             if (bytes > 0) 
             {
                 buffer_msg[client_sockets[i]->get_fd()] = std::string(buffer, bytes);
@@ -151,7 +153,7 @@ private:
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) 
                 {
-                    return;
+                    continue;
                 } 
                 else if (errno == ECONNRESET) 
                 {
@@ -186,8 +188,10 @@ private:
 
         if (client_fd != -1) 
         {
+            std::lock_guard lck(mut);
             client_sockets.push_back(std::make_unique<SocketHandle>(client_fd));
             std::cout << "Client connected at socket (int): " << client_fd << "\n";
+            std::cout << "Current Client Sockets size: " << client_sockets.size() << "\n";
             Message return_msg;
             return_msg.from_fd = server_fd;
             return_msg.to_fd = client_fd;
@@ -228,7 +232,7 @@ private:
 
         if (msg)
         {
-            std::cout << "on msg update: " << msg -> repr() << "\n";
+            std::cout << "\n\nOn Message Update: " << msg -> repr() << "\n";
             int msg_len = msg -> msg_len;
             buffer_msg[fd] = buffer_msg[fd].substr(msg_len, buffer_msg[fd].size()-msg_len);
             process_full_message(fd, std::move(msg));
