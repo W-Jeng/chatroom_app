@@ -142,6 +142,7 @@ private:
             if (bytes > 0) 
             {
                 buffer_msg[client_sockets[i]->get_fd()] = std::string(buffer, bytes);
+                std::cout << "Server123 has received: " << std::string(buffer, bytes) << "\n";
                 on_message_update(client_sockets[i]->get_fd());
                 memset(buffer, 0, sizeof(buffer));
             }
@@ -270,8 +271,8 @@ private:
                     Message return_msg;
                     return_msg.from_fd = server_fd;
                     return_msg.to_fd = sent_from;
-                    return_msg.action = Action::Messaging;
-                    return_msg.data = "Room does not exist or you haven't joined the room!";
+                    return_msg.action = Action::JoinRoom;
+                    return_msg.data = "FAILED";
                     return_msg.msg_len = return_msg.size();
                     std::cout << return_msg.repr() << std::endl;
                     send(sent_from, return_msg.repr().c_str(), return_msg.repr().size(), 0);
@@ -299,7 +300,9 @@ private:
 
         for (Message msg: outgoing_messages)
         {
-            send_q.emplace(msg);
+            std::cout << "\n \n From server raw sending: " << msg.repr() << "\n\n";
+            send(msg.to_fd, msg.repr().c_str(), msg.repr().size(), 0);
+            // send_q.emplace(msg);
         }
 
         while (!send_q.empty())

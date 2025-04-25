@@ -36,6 +36,7 @@ public:
         const std::unordered_set<int>& room_members = it->second.get_users_fd();
 
         it->second.add(fd_user);
+        std::cout << "Added fd: " << fd_user << " to room name: " << room_name << "\n\n";
         fd_to_room_mp[fd_user] = room_name;
         return true;
     }
@@ -84,7 +85,7 @@ public:
         {
             Message msg = Message();
             msg.from_fd = server_fd;
-            msg.to_fd = fd;
+            msg.to_fd = member;
             msg.action = Action::Messaging;
             msg.data = data;
             msg.msg_len = msg.size();

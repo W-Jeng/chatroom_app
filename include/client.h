@@ -88,6 +88,7 @@ public:
             close(fd_);
         }
 
+        chat_session.cond_var.notify_one();
         app_stopped = true;
         std::cout << "Clean exit from client\n";
     }
@@ -131,6 +132,7 @@ private:
 
             chat_session.message_queue.push(msg_received);
             chat_session.cond_var.notify_one();
+            std::cout << "Cond var is notified\n\n";
         }
     }
 

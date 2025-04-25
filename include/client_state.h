@@ -45,6 +45,7 @@ public:
     std::queue<std::string> message_queue;
     std::condition_variable cond_var;
     std::mutex mut;
+    std::unique_lock<std::mutex> lck{mut, std::defer_lock};
 
     ChatSession(bool& app_stoppped_):
         app_stopped(app_stoppped_)
@@ -74,6 +75,11 @@ public:
         }
         
         state -> prompt(*this);
+    }
+
+    bool app_is_stopped()
+    {
+        return app_stopped;
     }
 
     void connect()
@@ -157,21 +163,34 @@ void JoinRoomState::prompt(ChatSession& session)
     std::cout << "Key in -1 to return to disconnect\n";
     std::cout << "Answer: ";
     std::getline(std::cin, response);
+    std::cout << "track1\n";
+
+    if (session.app_is_stopped())
+    {
+        return;
+    }
 
     if (response == "-1")
     {
+        std::cout << "track2\n";
         session.set_state(std::make_unique<DisconnectState>());
     } 
 
+    std::cout << "track3\n";
     while (!session.message_queue.empty())
     {
+        std::cout << "track4\n";
         session.message_queue.pop();
     }
+    std::cout << "track5\n";
 
     session.join_room(response);
-    std::unique_lock<std::mutex> lck(session.mut);
-    session.cond_var.wait(lck, [&]{return !session.message_queue.empty();});
-    session.set_state(std::make_unique<OccupiedState>());
+    std::cout << "track7\n";
+    session.lck.lock();
+    std::cout << "locked mut \n\n";
+    session.cond_var.wait(session.lck, [&]{return !session.message_queue.empty();});
+    session.receive_from_server();
+    // session.set_state(std::make_unique<OccupiedState>());
 };
 
 void JoinRoomState::join_room(ChatSession& session, const std::string& room_name)
@@ -194,6 +213,13 @@ void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
     if (msg.action == Action::JoinRoom && msg.data == "SUCCESS")
     {
         session.set_state(std::make_unique<OccupiedState>());
+    }
+    else if (msg.action == Action::JoinRoom && msg.data == "FAILED")
+    {
+        std::cout << "Joined failed, might be due to wrong room name\n";
+        // need to unlock if not will cause deadlock
+        session.lck.unlock();
+        session.prompt();
     }
     else
     {
