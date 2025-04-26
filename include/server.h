@@ -18,7 +18,6 @@
 #include <unordered_map>
 #include <message_protocol.h>
 #include <room_manager.h>
-#include <send_buffer.h>
 #include <queue>
 
 constexpr int PORT = 8080;
@@ -80,7 +79,7 @@ private:
 
     void shutdown_sockets() 
     {
-        std::cout << "\nShutdown Signal received, closing sockets and shutting down the server\n";
+        std::cout << "\n\nShutdown Signal received, closing sockets and shutting down the server\n";
         std::lock_guard<std::mutex> lock(client_sockets_mutex);
         client_sockets.clear();
 
@@ -142,7 +141,6 @@ private:
             if (bytes > 0) 
             {
                 buffer_msg[client_sockets[i]->get_fd()] = std::string(buffer, bytes);
-                std::cout << "Server123 has received: " << std::string(buffer, bytes) << "\n";
                 on_message_update(client_sockets[i]->get_fd());
                 memset(buffer, 0, sizeof(buffer));
             }
@@ -233,7 +231,7 @@ private:
 
         if (msg)
         {
-            std::cout << "\n\nOn Message Update: " << msg -> repr() << "\n";
+            std::cout << "\nOn Message Update: " << msg -> repr() << "\n";
             int msg_len = msg -> msg_len;
             buffer_msg[fd] = buffer_msg[fd].substr(msg_len, buffer_msg[fd].size()-msg_len);
             process_full_message(fd, std::move(msg));
@@ -285,9 +283,8 @@ private:
                 break;
 
             case Action::Messaging:
-                std::cout << "messaging action called\n";
                 std::vector<Message> outgoing_messages = room_manager.on_messaging(server_fd, sent_from, msg -> data);
-                std::cout << "outgoing msg size: " << outgoing_messages.size() << "\n";
+                std::cout << "Sending outgoing message to " << outgoing_messages.size() << " socket(s)\n";
                 echo(outgoing_messages);
                 break;
         }
@@ -296,45 +293,10 @@ private:
     void echo(const std::vector<Message>& outgoing_messages)
     {
         // in not blocking scenes, we need to understand that sometimes client isnt always recv, so we need to store it in a queue 
-        std::queue<SendBuffer> send_q;
-
         for (Message msg: outgoing_messages)
         {
-            std::cout << "\n \n From server raw sending: " << msg.repr() << "\n\n";
+            std::cout << "\nFrom server raw sending: " << msg.repr() << "\n\n";
             send(msg.to_fd, msg.repr().c_str(), msg.repr().size(), 0);
-            // send_q.emplace(msg);
-        }
-
-        while (!send_q.empty())
-        {
-            SendBuffer& buf = send_q.front();
-            std::cout << "buffer data: " << buf.data.data() << "\n";
-            ssize_t n = send(buf.underlying.to_fd, buf.data.data()+buf.offset, buf.data.size()-buf.offset, 0);
-            std::cout << "sent n: " << n << "\n";
-
-            if (n > 0)
-            {
-                buf.offset += static_cast<size_t>(n);
-
-                if (buf.offset == buf.data.size())
-                {
-                    send_q.pop();
-                }
-                else
-                {
-                    continue;
-                }
-            }   
-            else if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
-            {
-                continue;
-            }
-            else
-            {
-                perror("send failed");
-                send_q.pop();
-                continue;
-            }
         }
     }
 };

@@ -158,12 +158,11 @@ void JoinRoomState::prompt(ChatSession& session)
 {
     std::string response;
 
-    std::cout << "\nActive State: Join Room State\n";
+    std::cout << "\n\nActive State: Join Room State\n";
     std::cout << "Please key in Room Number\n";
     std::cout << "Key in -1 to return to disconnect\n";
     std::cout << "Answer: ";
     std::getline(std::cin, response);
-    std::cout << "track1\n";
 
     if (session.app_is_stopped())
     {
@@ -172,22 +171,17 @@ void JoinRoomState::prompt(ChatSession& session)
 
     if (response == "-1")
     {
-        std::cout << "track2\n";
         session.set_state(std::make_unique<DisconnectState>());
+        return;
     } 
 
-    std::cout << "track3\n";
     while (!session.message_queue.empty())
     {
-        std::cout << "track4\n";
         session.message_queue.pop();
     }
-    std::cout << "track5\n";
 
     session.join_room(response);
-    std::cout << "track7\n";
     session.lck.lock();
-    std::cout << "locked mut \n\n";
     session.cond_var.wait(session.lck, [&]{return !session.message_queue.empty();});
     session.receive_from_server();
     // session.set_state(std::make_unique<OccupiedState>());
@@ -208,7 +202,7 @@ void JoinRoomState::join_room(ChatSession& session, const std::string& room_name
 
 void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
 {
-    std::cout << "thread id: " << std::this_thread::get_id() << "\n";
+    session.lck.unlock();
 
     if (msg.action == Action::JoinRoom && msg.data == "SUCCESS")
     {
@@ -218,7 +212,6 @@ void JoinRoomState::receive_from_server(ChatSession& session, Message& msg)
     {
         std::cout << "Joined failed, might be due to wrong room name\n";
         // need to unlock if not will cause deadlock
-        session.lck.unlock();
         session.prompt();
     }
     else
@@ -231,7 +224,7 @@ void DisconnectState::prompt(ChatSession& session)
 {
     std::string response;
 
-    std::cout << "\nActive State: Disconnected State\n";
+    std::cout << "\n\nActive State: Disconnected State\n";
     std::cout << "[Key 1] Join Room\n";
     std::cout << "[Key 2] Create Room\n";
     std::cout << "[Key -1] End Application\n";
@@ -244,7 +237,6 @@ void DisconnectState::prompt(ChatSession& session)
     }
     else if (response == "2")
     {
-        // TODO
         session.set_state(std::make_unique<CreateRoomState>());
     }
     else if (response == "-1")
@@ -294,7 +286,7 @@ void CreateRoomState::prompt(ChatSession& session)
 {
     std::string response;
 
-    std::cout << "\nActive State: Create Room State\n";
+    std::cout << "\n\nActive State: Create Room State\n";
     std::cout << "[Key -1] To go back to disconnect state\n";
     std::cout << "Create a room with name: ";
     std::getline(std::cin, response);

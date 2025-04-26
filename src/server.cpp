@@ -15,16 +15,8 @@ void handle_signal(int signal)
     }
 }
 
-
 int main() 
 {
-    std::unique_ptr<Message> msg = MessageProtocol::decode("19/3/4/JoinRoom/abcddd");
-
-    if (msg) 
-    {
-        std::cout << "msg item: " << msg -> repr() << "\n";
-    }
-
     std::cout << "Hello from server\n";
     std::signal(SIGINT, handle_signal);
     Server server{5};
@@ -41,6 +33,6 @@ int main()
 
     server.stop();
     server_thread.join();
-    std::cout << "Clean shutdown\n";
+    std::cout << "\n\nClean shutdown\n";
     return 0;
 }

@@ -35,6 +35,6 @@ int main() {
 
     client.stop();
     client_thread.join();
-    std::cout << "Clean shutdown from client\n";
+    std::cout << "\n\nClean shutdown from client\n";
     return 0;
 }

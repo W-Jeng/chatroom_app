@@ -111,7 +111,7 @@ private:
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
                     continue;
                 }
                 else
@@ -123,7 +123,7 @@ private:
 
             std::string msg_received(buffer, bytes_received);
             memset(buffer, 0, sizeof(buffer));
-            std::cout << "\n\nRaw data from server: [" << msg_received << "]\n";
+            std::cout << "\n\n[Raw data from server: " << msg_received << "]\n";
 
             if (!chat_session.valid_state())
             {
@@ -132,7 +132,6 @@ private:
 
             chat_session.message_queue.push(msg_received);
             chat_session.cond_var.notify_one();
-            std::cout << "Cond var is notified\n\n";
         }
     }
 
